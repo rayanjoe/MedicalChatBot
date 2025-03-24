@@ -1,122 +1,108 @@
-# 🩺 Medical Chatbot with RAG Architecture
+# 🏥 Medical Chatbot with RAG & GPU-Accelerated Ollama
 
-An AI-powered medical Q&A system using Llama 2, ChromaDB, and Sentence Transformers. Leverages Retrieval-Augmented Generation (RAG) to provide accurate responses from 16,000+ curated medical Q&A pairs.
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)](https://www.docker.com)
+[![CUDA](https://img.shields.io/badge/CUDA-Enabled-76B900?logo=nvidia)](https://developer.nvidia.com/cuda-toolkit)
+
+An end-to-end medical Q&A system combining RAG architecture with GPU-accelerated Llama 2 inference via Dockerized Ollama.
 
 ## Features
-- 🚀 Hybrid NLP pipeline with semantic search
-- 💡 Local LLM inference with Llama 2-7B
-- 📚 Context-aware responses using ChromaDB vector store
-- 🐳 Dockerized services for scalability
-- 🛠️ GPU-accelerated embeddings (CUDA support)
+- 🐳 Full Dockerization (Ollama + ChromaDB)
+- 🚀 NVIDIA GPU acceleration for LLM inference
+- 🔍 Semantic search with ChromaDB
+- 💊 Trained on 16k medical Q&A pairs
+- 📈 Dynamic GPU resource allocation
 
 ## Tech Stack
-- **LLM**: Llama 2-7B (GGUF quantized)
-- **Vector DB**: ChromaDB
-- **Embeddings**: all-MiniLM-L6-v2
-- **NLP**: Sentence Transformers, LangChain
-- **API**: Ollama, Flask
-- **UI**: Streamlit
+| Component          | Technology               |
+|---------------------|--------------------------|
+| LLM Runtime         | Ollama (GPU-accelerated) |
+| Vector DB           | ChromaDB                 |
+| Embeddings Model    | all-MiniLM-L6-v2         |
+| LLM Model           | Llama 2-7B-Chat (GGUF)   |
+| Containerization    | Docker + NVIDIA Toolkit  |
+| API Layer           | REST + Streamlit         |
 
-## Prerequisites
-- NVIDIA GPU (CUDA 11.8+ recommended)
-- Docker & Docker Compose
-- Python 3.10+
-- Ollama installed locally
+## 🛠️ Prerequisites
+1. NVIDIA GPU with **Driver 525+**
+2. Docker Engine 24.0+
+3. NVIDIA Container Toolkit
+4. CUDA 11.8+ toolkit
 
-## 🛠️ Installation
+# 🐳 Docker Compose Setup
+```
+version: '3.8'
 
-1. Clone repository:
-```bash
-git clone https://github.com/<your-username>/medical-chatbot.git
-cd medical-chatbot
-Install dependencies:
+services:
+  ollama:
+    image: ollama/ollama:0.1.31
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - medical-net
+    runtime: nvidia
 
-bash
-Copy
-pip install -r requirements.txt
-Download Llama 2-7B GGUF model:
+  chromadb:
+    image: chromadb/chroma:0.4.15
+    ports:
+      - "8000:8000"
+    networks:
+      - medical-net
+    volumes:
+      - ./chroma_db:/chroma/chroma_db
 
-bash
-Copy
-ollama pull llama2:7b-chat-q4_0
-🐳 Docker Setup
-Start services (Ollama + ChromaDB):
+volumes:
+  ollama_models:
 
-bash
-Copy
-docker-compose up -d
-Verify containers:
+networks:
+  medical-net:
+    external: true
+```
+🔧 Ollama GPU Configuration
+Pull Llama 2 model with GPU layers:
+```
+docker exec ollama ollama pull llama2:7b-chat-q4_0
+```
+Verify GPU acceleration:
+```
+docker exec ollama ollama ps
+# Should show GPU layers in use
+```
 
-bash
-Copy
-docker ps -a
-🗄️ ChromaDB Setup
-Run the ChromaDB initialization (from model_train.ipynb):
+🗄️ ChromaDB Initialization
+```
+import chromadb
 
-python
-Copy
-# Initialize ChromaDB
-client = chromadb.PersistentClient(path="./chroma_db")
+# Connect to Dockerized ChromaDB
+client = chromadb.HttpClient(host="chromadb", port=8000)
 collection = client.create_collection("medical_chatbot")
 
-# Add your documents (from MedQuAD dataset)
-# ... (run the document ingestion chunk from model_train)
-Verify collection:
+# Run your document ingestion code here
+# (From the ChromaDB setup chunk in model_train.ipynb)
+```
 
-python
+# Project Structure
+```
+
 Copy
-print(client.list_collections())
-🚀 Running the Application
-Start Streamlit UI:
-
-bash
-Copy
-streamlit run Run_model.ipynb
-Access the chatbot at http://localhost:8501
-
-Project Structure
-Copy
-├── chroma_db/            # ChromaDB vector store
-├── Model/                # Llama 2 GGUF models
-├── Run_model.ipynb       # Main pipeline notebook
-├── run_model_support.py  # Core RAG functions
-├── requirements.txt      # Python dependencies
-├── prompt.txt            # Llama 2 system prompt template
-└── docker-compose.yml    # Ollama + ChromaDB configuration
-Hardware Requirements
-Minimum: 16GB RAM + 8GB VRAM (NVIDIA GPU)
-
-Recommended: 32GB RAM + 16GB VRAM (RTX 3090/A100)
-
-📚 Dataset
-Uses 16,000+ hand-curated medical Q&A pairs from MedQuAD:
-
-Symptoms analysis
-
-Treatment protocols
-
-Disease prevention
-
-Medication information
-
-Troubleshooting
-Common issues:
-
-CUDA Out of Memory:
-
-python
-Copy
-# Reduce batch size in Run_model.ipynb
-gpu_layers = min(30, int(gpu_mem * 3))  # Adjust multiplier
-ChromaDB Connection Errors:
-
-bash
-Copy
-rm -rf chroma_db/ && python model_train.py  # Reinitialize DB
-Ollama API Timeouts:
-
-bash
-Copy
-docker restart ollama  # Restart Ollama service
-License
-MIT License - See LICENSE
+├── docker-compose.yml       # GPU-Ollama + ChromaDB
+├── chroma_db/              # Persistent vector store
+├── Model/                  # Local model cache
+├── Run_model.ipynb         # Main pipeline
+├── model_train.ipynb       # DB initialization
+├── requirements.txt        # Python dependencies
+└── prompt.txt              # Llama 2 template
+```
+To Run
+In command Prompt
+```
+streamlit run streamlit.py
+```
