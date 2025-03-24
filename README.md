@@ -86,7 +86,8 @@ client = chromadb.HttpClient(host="chromadb", port=8000)
 collection = client.create_collection("medical_chatbot")
 
 # Run your document ingestion code here
-# (From the ChromaDB setup chunk in model_train.ipynb)
+#install the chromaDB by just running the below chunk
+# 🚀🚀🚀(From the ChromaDB setup chunk in model_train.ipynb)🚀🚀🚀Important to run the model
 ```
 
 # Project Structure
